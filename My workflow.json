@@ -1,0 +1,166 @@
+{
+  "name": "My workflow",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "pipeline-failure",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "65f61864-b664-4ae7-8240-76f08606c54d",
+      "name": "Webhook",
+      "webhookId": "57011403-9b20-465f-8990-049e5c7885ea"
+    },
+    {
+      "parameters": {
+        "jsCode": "const runId = items[0].json.run_id;\n\nreturn [\n  {\n    json: {\n      run_id: runId,\n      evidence_items: [\n        {\n          type: \"log\",\n          title: \"Auto-collected logs\",\n          content: `02:10:11 Starting job\n02:10:25 Connecting to warehouse\n02:10:55 ERROR connect ETIMEDOUT 10.0.0.12:5432`,\n          source: \"n8n\"\n        },\n        {\n          type: \"metric\",\n          title: \"Auto-collected metrics\",\n          content_json: {\n            cpu: 0.93,\n            memory: 0.81,\n            error_rate: 0.39,\n            retries: 2\n          },\n          source: \"n8n\"\n        }\n      ],\n      evidence_pack: {\n        summary:\n          \"Pipeline failed due to database timeout. Evidence auto-collected by n8n includes logs and runtime metrics.\"\n      }\n    }\n  }\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        160,
+        0
+      ],
+      "id": "bd8c32fd-79ec-40df-87b7-ebd8bce0e4d9",
+      "name": "Code in JavaScript"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://zciloinjdqnspnedgtuf.supabase.co/rest/v1/evidence_packs?on_conflict=run_id",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey ",
+              "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpjaWxvaW5qZHFuc3BuZWRndHVmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjgyNDcyNTIsImV4cCI6MjA4MzgyMzI1Mn0.-MYlRoYJc8TWU1LEG2UIgIL-LNA0hewLDZWeqTVxcgI"
+            },
+            {
+              "name": "Authorization ",
+              "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpjaWxvaW5qZHFuc3BuZWRndHVmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjgyNDcyNTIsImV4cCI6MjA4MzgyMzI1Mn0.-MYlRoYJc8TWU1LEG2UIgIL-LNA0hewLDZWeqTVxcgI"
+            },
+            {
+              "name": "Content-Type ",
+              "value": "application/json"
+            },
+            {
+              "name": "Prefer",
+              "value": "resolution=merge-duplicates,return=representation"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "=run_id",
+              "value": "={{$json.run_id}}"
+            },
+            {
+              "name": "=Summary",
+              "value": "={{$json.summary}}"
+            },
+            {
+              "name": "=timeline",
+              "value": "={{$json.timeline}}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        528,
+        0
+      ],
+      "id": "cb3441cc-b025-46eb-bcf5-5f394b9fcf2e",
+      "name": "HTTP Request"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "2e31d89e-c06d-490b-b6b7-68d4b2a6fb12",
+              "name": "run_id",
+              "value": "={{$json.run_id.replace(/^[=\\s]+/, '').trim()}}\n",
+              "type": "string"
+            },
+            {
+              "id": "8192ce01-f294-468e-9e1e-bd4a1c54129a",
+              "name": "=Summer",
+              "value": "=={{$json.summary}}\n",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        336,
+        0
+      ],
+      "id": "3c795747-b564-439b-b858-dc76ba0433d8",
+      "name": "Edit Fields"
+    }
+  ],
+  "pinData": {
+    "Webhook": [
+      {
+        "json": {
+          "run_id": "b763ce30-3199-45b6-a311-3974a09f363a"
+        }
+      }
+    ]
+  },
+  "connections": {
+    "Code in JavaScript": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request": {
+      "main": [
+        []
+      ]
+    },
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": false
+  },
+  "versionId": "10c38bdf-1025-499a-8a4b-1d15ca768a47",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "81718de9ed3cea9b3603d9170b69bbf06275fb9d3c91e098263e9da1296d1a96"
+  },
+  "id": "XFXPC826jV8DFBFw4ZULT",
+  "tags": []
+}
