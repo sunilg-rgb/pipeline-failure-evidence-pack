@@ -1,70 +1,197 @@
-# Pipeline Failure Evidence Pack
+Pipeline Failure Evidence Pack (Next.js + n8n + Supabase)
 
-## What this is
-Demo showing how pipeline failure signals can be captured via n8n webhook and stored in Supabase, then viewed in a Next.js UI.
+This project automatically collects pipeline failure evidence and stores it into Supabase, then displays the results in a Next.js UI.
 
-## Architecture
-Webhook (n8n) → transform → Supabase insert → Next.js UI fetch + table display
+It demonstrates:
 
-## Setup
-1. Create a Supabase project
-2. Run `supabase/schema.sql` in Supabase SQL Editor
-3. Add env vars to Next.js:
+Triggering an n8n workflow via Webhook
 
-NEXT_PUBLIC_SUPABASE_URL=...
-NEXT_PUBLIC_SUPABASE_ANON_KEY=...
+Generating evidence_items + evidence_pack payload
 
-4. Run app:
+Inserting into Supabase tables:
+
+evidence_packs
+
+evidence_items
+
+Viewing the stored evidence in a simple UI table
+
+✅ Features Implemented
+1) n8n Workflow
+
+Webhook trigger receives run_id + summary data
+
+Code node generates evidence items
+
+HTTP Request inserts into Supabase REST API
+
+2) Supabase Database
+
+Tables used:
+
+evidence_packs
+
+evidence_items
+
+3) Next.js UI
+
+Load Evidence button
+
+Fetches from Supabase REST endpoint
+
+Displays data in a table:
+
+Created At
+
+Run ID
+
+Summary
+
+Timeline Count
+
+ID
+
+🧱 Tech Stack
+
+Next.js
+
+Supabase (Postgres + REST API)
+
+n8n Cloud
+
+⚙️ Environment Variables
+
+Create a file in root:
+
+.env.local
+NEXT_PUBLIC_SUPABASE_URL=https://YOUR_PROJECT_ID.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=YOUR_SUPABASE_ANON_KEY
+
+
+⚠️ Do not commit .env.local (it must be in .gitignore)
+
+▶️ Run Locally
+
+Install dependencies:
+
 npm install
+
+
+Start Next.js:
+
 npm run dev
 
-## n8n
-Workflow export is in `n8n/workflow.json`
--- Enable uuid generation
-create extension if not exists "pgcrypto";
 
--- 1) ENUM for evidence item type (because your screenshot shows USER-DEFINED)
-do $$ begin
-  create type public.evidence_item_type as enum ('log', 'metric', 'error', 'link', 'note');
-exception
-  when duplicate_object then null;
-end $$;
+App runs on:
 
--- 2) evidence_packs table
-create table if not exists public.evidence_packs (
-  id uuid primary key default gen_random_uuid(),
-  run_id uuid not null,
-  summary text,
-  timeline jsonb default '[]'::jsonb,
-  created_at timestamptz not null default now()
-);
+http://localhost:3000
 
--- This matches the error you saw:
--- "duplicate key value violates unique constraint evidence_packs_run_id_key"
-create unique index if not exists evidence_packs_run_id_key
-  on public.evidence_packs (run_id);
+🔗 Supabase REST API Used
 
--- 3) evidence_items table (with all columns from your screenshot)
-create table if not exists public.evidence_items (
-  id uuid primary key default gen_random_uuid(),
-  run_id uuid not null,
-  type public.evidence_item_type not null,
-  title text not null,
-  source text,
-  content text,
-  content_json jsonb,
-  uri text,
-  created_at timestamptz not null default now()
-);
+Example:
 
--- Link evidence_items to evidence_packs by run_id
--- (this makes joins easy and prevents orphan evidence items)
-alter table public.evidence_items
-  add constraint evidence_items_run_id_fkey
-  foreign key (run_id)
-  references public.evidence_packs (run_id)
-  on delete cascade;
+GET  {SUPABASE_URL}/rest/v1/evidence_packs?select=*
 
--- Helpful index for querying by run_id fast
-create index if not exists evidence_items_run_id_idx
-  on public.evidence_items (run_id);
+
+Headers required:
+
+apikey: <SUPABASE_ANON_KEY>
+Authorization: Bearer <SUPABASE_ANON_KEY>
+Content-Type: application/json
+
+🧪 How to Test the Full Flow
+Step 1: Trigger n8n Webhook
+
+Use Postman / Hoppscotch / curl:
+
+curl -X POST "YOUR_N8N_WEBHOOK_URL" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "run_id": "b763ce30-3199-45b6-a311-3974a09f363a",
+    "summary": "Pipeline failed due to database timeout"
+  }'
+
+Step 2: Confirm in Supabase
+
+Go to Supabase Table Editor:
+
+evidence_packs should contain the new record
+
+evidence_items should contain related evidence rows
+
+Step 3: View in Next.js UI
+
+Click Load Evidence → data should appear in table.
+
+🧾 n8n Workflow Export
+
+The workflow export is included here:
+
+n8n-workflow.json
+
+Import it into n8n:
+
+n8n → Workflows
+
+Import from file
+
+Select n8n-workflow.json
+
+Update webhook URL + Supabase credentials
+
+⚠️ Common Errors & Fixes
+1) JSON parameter needs to be valid JSON
+
+In n8n HTTP Request node → Body must be valid JSON like:
+
+{
+  "run_id": "{{$json.run_id}}",
+  "summary": "{{$json.summary}}",
+  "timeline": []
+}
+
+2) invalid input syntax for type uuid: "="
+
+This happens when the value has extra characters like:
+
+=b763ce30-...
+
+
+Fix by trimming/cleaning before insert (use Edit Fields / Code node).
+
+3) duplicate key value violates unique constraint evidence_packs_run_id_key
+
+Means same run_id already exists in evidence_packs.
+Solution:
+
+Use a new run_id each time OR
+
+Change to UPSERT logic later
+
+🚀 Next Improvements (Planned)
+
+Add UPSERT support (avoid duplicate run_id failures)
+
+Insert evidence_items automatically linked to evidence_packs
+
+Add filtering by run_id
+
+Add details page for evidence pack
+
+Add authentication + RLS policies
+
+Production deployment via Coolify/Vercel
+
+🎥 Demo Video
+
+Demo video shows:
+
+Supabase tables + schema
+
+n8n workflow execution logs
+
+Auto insert into Supabase
+
+Next.js UI showing evidence table
+
+https://www.loom.com/share/f86e3c2e54494163a350eb7714b18876
