@@ -67,9 +67,6 @@ Create a file in root:
 NEXT_PUBLIC_SUPABASE_URL=https://YOUR_PROJECT_ID.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=YOUR_SUPABASE_ANON_KEY
 
-
-⚠️ Do not commit .env.local (it must be in .gitignore)
-
 ▶️ Run Locally
 
 Install dependencies:
